@@ -36,7 +36,14 @@ const firebaseConfig = {
   appId: "1:751764116522:android:f4705ee3aed7aa197adf53"
 };
 
-const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
+let app;
+try {
+  app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
+} catch (error) {
+  console.warn("Firebase init fallback", error);
+  app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
+}
+
 export const auth = getAuth(app);
 export const db = getFirestore(app);
 
@@ -63,9 +70,15 @@ export async function logoutUser(): Promise<void> {
 }
 
 export function subscribeAuth(callback: (user: FirebaseUser | null) => void) {
-  return onAuthStateChanged(auth, (user) => {
-    callback(user);
-  });
+  try {
+    return onAuthStateChanged(auth, (user) => {
+      callback(user);
+    });
+  } catch (error) {
+    console.warn("Auth listener unavailable", error);
+    callback(null);
+    return () => undefined;
+  }
 }
 
 // Mock initial fallback parts
@@ -128,7 +141,7 @@ export async function fetchPartsList(): Promise<SparePart[]> {
       return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as SparePart));
     }
   } catch (err) {
-    console.log("Firestore fallback to local cache");
+    console.warn("Firestore fallback to local cache", err);
   }
   return MOCK_PARTS;
 }

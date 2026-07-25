@@ -90,26 +90,39 @@ export function AppNavigator() {
       if (!isMounted) return;
       setUser(currentUser);
 
-      Animated.sequence([
-        Animated.timing(splashOpacity, {
-          toValue: 0,
-          duration: 350,
-          useNativeDriver: true,
-        }),
-        Animated.timing(contentOpacity, {
-          toValue: 1,
-          duration: 300,
-          useNativeDriver: true,
-        }),
-      ]).start(() => {
+      try {
+        Animated.sequence([
+          Animated.timing(splashOpacity, {
+            toValue: 0,
+            duration: 350,
+            useNativeDriver: true,
+          }),
+          Animated.timing(contentOpacity, {
+            toValue: 1,
+            duration: 300,
+            useNativeDriver: true,
+          }),
+        ]).start(() => {
+          if (isMounted) {
+            setInitializing(false);
+          }
+        });
+      } catch (error) {
         if (isMounted) {
           setInitializing(false);
         }
-      });
+      }
     });
+
+    const fallbackTimer = setTimeout(() => {
+      if (isMounted) {
+        setInitializing(false);
+      }
+    }, 1800);
 
     return () => {
       isMounted = false;
+      clearTimeout(fallbackTimer);
       unsubscribe();
     };
   }, [contentOpacity, splashOpacity]);
